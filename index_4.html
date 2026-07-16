@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>九星チェック</title>
+<style>
+  :root{
+    --ink:#fff8f2; --panel:#ffffff; --panel2:#fffaf6;
+    --gold:#ff7a59; --gold-soft:#2bb3a3; --paper:#3a3648; --line:#f0ddd0;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+    color:var(--paper); min-height:100vh; padding-bottom:3em;
+    background:linear-gradient(160deg, #fff1e8 0%, #eaf7f5 55%, #e4f2fb 100%);
+    background-attachment:fixed;
+  }
+  header{
+    text-align:center; padding:1em 1em .8em; background:rgba(255,255,255,.6); border-bottom:1px solid var(--line);
+    backdrop-filter:blur(6px);
+  }
+  header h1{
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    font-size:1.3rem; font-weight:600; letter-spacing:.3em; color:var(--gold-soft);
+  }
+  main{max-width:640px; margin:0 auto; padding:1.2em 1em}
+
+  .inputbar{
+    display:flex; align-items:center; justify-content:center; gap:.4em; flex-wrap:wrap;
+    background:var(--panel2); border:1px solid var(--line); border-radius:16px;
+    padding:1em; margin-bottom:1.2em; box-shadow:0 6px 20px rgba(255,122,89,.08);
+  }
+  input[type=number], select, input[type=text]{
+    background:var(--ink); color:var(--paper); border:1px solid var(--line);
+    border-radius:6px; padding:.45em .5em; font-size:1rem;
+  }
+  #inYear{width:5.5em}
+  label{font-size:.85rem; color:#6b6478}
+  button{
+    background:var(--gold); color:#ffffff; border:none; border-radius:7px;
+    padding:.55em 1.2em; font-size:.95rem; font-weight:700; cursor:pointer; letter-spacing:.1em;
+  }
+  button:active{transform:translateY(1px)}
+  #people{display:flex; flex-wrap:wrap; gap:.4em; justify-content:center; width:100%; margin-top:.3em}
+  .chip{
+    background:var(--ink); border:1px solid var(--line); border-radius:999px;
+    padding:.2em .5em .2em .8em; font-size:.78rem; cursor:pointer; display:flex; align-items:center; gap:.3em;
+  }
+  .chip:hover{border-color:var(--gold)}
+  .chip .del{color:#e0574a; font-weight:700; padding:0 .3em}
+  .saveline{display:flex; gap:.4em; align-items:center; width:100%; justify-content:center; margin-top:.4em}
+  .saveline input{width:10em; font-size:.85rem; padding:.3em .5em}
+  .saveline button{font-size:.75rem; padding:.35em .7em; background:transparent; color:var(--gold-soft); border:1px solid var(--gold)}
+
+  /* 命式 */
+  #result{display:none}
+  .sheet{
+    background:var(--panel2); border:1px solid var(--gold); border-radius:12px;
+    padding:1.3em 1.4em;
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+  }
+  .sheet .born{
+    font-size:1.15rem; color:var(--gold-soft); letter-spacing:.12em;
+    border-bottom:1px solid var(--line); padding-bottom:.6em; margin-bottom:.9em;
+  }
+  .sheet .item{
+    display:flex; align-items:baseline; gap:.8em;
+    padding:.5em 0; border-bottom:1px dashed rgba(255,122,89,.3);
+    font-size:1.02rem; letter-spacing:.05em; flex-wrap:wrap;
+  }
+  .sheet .item:last-child{border-bottom:none}
+  .sheet .lbl{min-width:6.5em; color:var(--gold); font-size:.9rem; letter-spacing:.2em}
+  .sheet .val{font-weight:700; font-size:1.1rem}
+  .sheet .kanshi{color:#847c94}
+  .sheet .kana{color:#9b93a8; font-size:.8rem}
+  .hint{font-size:.68rem; color:#9b93a8; line-height:1.7; margin-top:1em; font-family:"Hiragino Kaku Gothic ProN",sans-serif}
+  .persona{
+    background:var(--panel2); border:1px solid var(--gold); border-radius:12px;
+    padding:1.2em 1.4em; margin-top:1.1em;
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+  }
+  .persona h2{
+    font-size:.82rem; letter-spacing:.25em; color:var(--gold); font-weight:600;
+    border-bottom:1px solid var(--line); padding-bottom:.5em; margin-bottom:.8em;
+    font-family:"Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  .persona .body{font-size:.98rem; line-height:2.1}
+  .persona .body .tag{color:var(--gold-soft); font-size:.78rem; letter-spacing:.1em}
+  .persona .body b{color:var(--gold-soft)}
+  .explain{
+    margin-top:1em; padding-top:1em; border-top:1px solid var(--line);
+    font-family:"Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  .explain h3{
+    font-size:.75rem; letter-spacing:.2em; color:var(--gold); font-weight:600; margin-bottom:.6em;
+  }
+  .explain p{font-size:.82rem; line-height:1.9; color:#6b6478; margin-bottom:.25em}
+  .explain p b{color:var(--gold-soft)}
+</style>
+</head>
+<body>
+<header>
+  <h1>✦ 九星チェック ✦</h1>
+  <div style="font-size:.75rem; color:#9b93a8; letter-spacing:.15em; margin-top:.3em">生まれた日から、あなたの九星をチェック</div>
+</header>
+<main>
+
+  <div class="inputbar">
+    <input type="number" id="inYear" min="1900" max="2100" placeholder="例:1990"><label>年</label>
+    <select id="inMonth"></select><label>月</label>
+    <select id="inDay"></select><label>日</label>
+    <button id="calcBtn">計 算</button>
+    <div class="saveline">
+      <input type="text" id="inName" placeholder="名前（保存用）">
+      <button id="saveBtn">保存</button>
+    </div>
+    <div id="people"></div>
+  </div>
+
+  <div id="result">
+    <div class="sheet">
+      <div class="born" id="rBorn"></div>
+      <div class="item"><span class="lbl">本命星</span><span class="val" id="rHon"></span><span class="kanshi" id="rHonK"></span></div>
+      <div class="item"><span class="lbl">月命星</span><span class="val" id="rGetsu"></span><span class="kanshi" id="rGetsuK"></span></div>
+      <div class="item"><span class="lbl">日命星</span><span class="val" id="rNichi"></span><span class="kanshi" id="rNichiK"></span></div>
+      <div class="item"><span class="lbl">傾斜</span><span class="val" id="rKeisha"></span></div>
+      <div class="item"><span class="lbl">空亡（天中殺）</span><span class="val" id="rKubo"></span><span class="kanshi" id="rKuboYear"></span></div>
+      <div class="item"><span class="lbl">空亡月</span><span class="val" id="rKuboMonth"></span></div>
+    </div>
+
+    <div class="persona" id="persona"></div>
+
+    <p class="hint">年の切り替わりは立春、月の切り替わりは節入り。空亡（天中殺）は日柱の干支（旬）から算出。傾斜は月命星を中央に置いた盤で本命星の入る宮を九星で表したもの。日命星の閏遁の扱いは暦・流派により異なる場合があります。性質の説明は九星の一般的な象意に基づく参考です。</p>
+
+    <div class="explain">
+      <h3>用語の説明</h3>
+      <p><b>本命星</b>→「あなたの看板」。周りにどう見られてるか、人生の土台になる部分</p>
+      <p><b>月命星</b>→「あなたの本音」。心の中にある、本当の気持ち</p>
+      <p><b>日命星</b>→「あなたのクセ」。毎日の行動や、人との関わり方に出る部分</p>
+      <p><b>傾斜</b>→「あなたも知らないあなた」。無意識に持ってる、隠れた本音や才能</p>
+      <p><b>空亡（天中殺）</b>→「充電切れの2年間」。頑張っても結果が出にくい、無理せず休む・準備する時期</p>
+      <p><b>空亡月</b>→「充電切れの2ヶ月間」。空亡年の中でも、特に慎重に過ごしたいタイミング</p>
+    </div>
+  </div>
+
+</main>
+<script>
+// ============================================================
+// KigakuEngine — 九星気学 計算エンジン（純粋ロジック・DOM非依存）
+// 吉方位マップとの合体を見据え、UIから完全分離
+// ============================================================
+const KigakuEngine = (function(){
+  "use strict";
+
+  const STARS = ["","一白水星","二黒土星","三碧木星","四緑木星","五黄土星","六白金星","七赤金星","八白土星","九紫火星"];
+  const STEMS = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+  const BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+  const BRANCH_DIR = ["北","北北東","東北東","東","東南東","南南東","南","南南西","西南西","西","西北西","北北西"];
+
+  // ---- ユリウス日 ----
+  function jdn(y, m, d){ // グレゴリオ暦 → 整数JDN（その日の正午UT基準）
+    const a = Math.floor((14 - m) / 12);
+    const yy = y + 4800 - a;
+    const mm = m + 12 * a - 3;
+    return d + Math.floor((153 * mm + 2) / 5) + 365 * yy +
+           Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
+  }
+  // JST時刻 → JD:  JD = JDN + (hJST - 21)/24
+  const jdAtJST = (y, m, d, hJST) => jdn(y, m, d) + (hJST - 21) / 24;
+
+  // ---- 太陽黄経（視黄経・低精度式、精度は分オーダーで節気判定には十分） ----
+  function sunLon(jd){
+    const T = (jd - 2451545.0) / 36525;
+    const rad = Math.PI / 180;
+    const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+    const M = (357.52911 + 35999.05029 * T - 0.0001537 * T * T) * rad;
+    const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M)
+            + (0.019993 - 0.000101 * T) * Math.sin(2 * M)
+            + 0.000289 * Math.sin(3 * M);
+    const omega = (125.04 - 1934.136 * T) * rad;
+    let lon = L0 + C - 0.00569 - 0.00478 * Math.sin(omega);
+    lon %= 360; if(lon < 0) lon += 360;
+    return lon;
+  }
+
+  // 目標黄経となる瞬間（JD）を二分探索。jd0〜jd1の間に必ず1回だけ通過する前提
+  function findLonCross(target, jd0, jd1){
+    const diff = jd => (((sunLon(jd) - target) % 360) + 540) % 360 - 180; // -180..180
+    let lo = jd0, hi = jd1;
+    for(let i = 0; i < 60; i++){
+      const mid = (lo + hi) / 2;
+      if(diff(mid) < 0) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+  // 夏至(黄経90)・冬至(270)の瞬間JD
+  const summerSolstice = y => findLonCross(90,  jdAtJST(y, 6, 14, 0), jdAtJST(y, 6, 28, 0));
+  const winterSolstice = y => findLonCross(270, jdAtJST(y, 12, 15, 0), jdAtJST(y, 12, 29, 0));
+
+  // ---- 節月インデックス（寅月=0 … 丑月=11）: その日の24:00 JST時点の黄経で判定 ----
+  // 節入り日はその日から新しい月に入る扱い
+  function monthIndex(y, m, d){
+    const lon = sunLon(jdn(y, m, d) + 0.125); // 24:00 JST = JDN+0.125
+    return Math.floor((((lon - 315) % 360) + 360) % 360 / 30);
+  }
+
+  // ---- 気学年（立春切り替え） ----
+  function kigakuYear(y, m, d){
+    const mi = monthIndex(y, m, d);
+    if(m <= 2 && mi >= 10) return y - 1; // 子月(10)・丑月(11)のうち1〜2月分は前年
+    return y;
+  }
+
+  // ---- 年家九星 ----
+  function yearStar(ky){
+    let s = 11 - (ky % 9);
+    while(s > 9) s -= 9;
+    return s;
+  }
+
+  // ---- 月家九星（年支グループで寅月の星が決まり、以降毎月-1） ----
+  function monthStar(ky, mi){
+    const b = ((ky - 4) % 12 + 12) % 12; // 年支 子=0
+    let start;
+    if([0,3,6,9].includes(b)) start = 8;       // 子卯午酉
+    else if([1,4,7,10].includes(b)) start = 5; // 丑辰未戌
+    else start = 2;                            // 寅巳申亥
+    return ((start - mi - 1) % 9 + 9) % 9 + 1;
+  }
+
+  // ---- 干支 ----
+  function yearKanshi(ky){
+    const s = ((ky - 4) % 10 + 10) % 10, b = ((ky - 4) % 12 + 12) % 12;
+    return {stem: s, branch: b, text: STEMS[s] + BRANCHES[b]};
+  }
+  function monthKanshi(ky, mi){
+    const yst = ((ky - 4) % 10 + 10) % 10;
+    const toraStem = ((yst % 5) * 2 + 2) % 10;
+    const s = (toraStem + mi) % 10, b = (mi + 2) % 12;
+    return {stem: s, branch: b, text: STEMS[s] + BRANCHES[b]};
+  }
+  function dayKanshi(y, m, d){
+    const i = ((jdn(y, m, d) + 49) % 60 + 60) % 60; // 甲子=0
+    return {stem: i % 10, branch: i % 12, text: STEMS[i % 10] + BRANCHES[i % 12], index: i};
+  }
+
+  // ---- 破（支の反対方向） ----
+  function ha(branch){
+    const ob = (branch + 6) % 12;
+    return {branch: ob, text: BRANCHES[ob] + "（" + BRANCH_DIR[ob] + "）", dir: BRANCH_DIR[ob]};
+  }
+
+  // ---- 日家九星（陽遁・陰遁） ----
+  // 切替 = 冬至/夏至に最も近い甲子の日（00:00 JST基準で比較、同距離なら後）
+  // 冬至側の甲子 = 陽遁始め(一白から+1ずつ) / 夏至側 = 陰遁始め(九紫から-1ずつ)
+  // 切替点: 二至(冬至/夏至)に最も近い甲子の日。ただし前後の甲子が
+  // どちらも27日以上離れる年は「閏遁」として、間の甲午の日で切り替える
+  // （閏陽遁=七赤から、閏陰遁=三碧から。次の甲子で通常の一白/九紫に自然接続する）
+  function switchInfo(solsticeJD, type){
+    const sJdn = Math.floor(solsticeJD + 0.875);          // JST日付のJDN
+    const k0 = sJdn - ((sJdn + 49) % 60 + 60) % 60;       // 直前(当日含む)の甲子
+    const k1 = k0 + 60;
+    const b = sJdn - k0, a = k1 - sJdn;
+    if(Math.min(a, b) >= 27){
+      return {k: k0 + 30, type, start: type === "yo" ? 7 : 3, uruu: true}; // 甲午
+    }
+    return {k: b <= a ? k0 : k1, type, start: type === "yo" ? 1 : 9, uruu: false};
+  }
+  function dayStar(y, m, d){
+    const J = jdn(y, m, d);
+    const sw = [];
+    for(const yy of [y - 2, y - 1, y]){
+      sw.push(switchInfo(summerSolstice(yy), "in"));
+      sw.push(switchInfo(winterSolstice(yy), "yo"));
+    }
+    sw.sort((a, b) => a.k - b.k);
+    let gov = null;
+    for(const c of sw){ if(c.k <= J) gov = c; }
+    if(!gov) return null;
+    const idx = (J - gov.k) % 9;
+    return {
+      star: gov.type === "yo"
+        ? ((gov.start - 1 + idx) % 9) + 1
+        : ((gov.start - 1 - idx) % 9 + 9) % 9 + 1,
+      ton: (gov.uruu ? "閏" : "") + (gov.type === "yo" ? "陽遁" : "陰遁")
+    };
+  }
+
+  // ---- 九星盤の配置（後天定位: 北1 北東8 東3 南東4 南9 南西2 西7 北西6） ----
+  // 中央星Cのとき、定位dの位置の星 = ((C-5)+(d-1)) mod 9 +1
+  const TEII = {N:1, NE:8, E:3, SE:4, S:9, SW:2, W:7, NW:6};
+  function board(center){
+    const out = {};
+    for(const pos in TEII){
+      out[pos] = ((center - 5 + TEII[pos] - 1) % 9 + 9) % 9 + 1;
+    }
+    out.C = center;
+    return out;
+  }
+
+  // ---- 一括計算 ----
+  function computeAll(y, m, d){
+    const ky = kigakuYear(y, m, d);
+    const mi = monthIndex(y, m, d);
+    const yk = yearKanshi(ky), mk = monthKanshi(ky, mi), dk = dayKanshi(y, m, d);
+    const ds = dayStar(y, m, d);
+    return {
+      input: {y, m, d},
+      kigakuYear: ky,
+      monthIndex: mi,
+      year:  {star: yearStar(ky),        kanshi: yk, ha: ha(yk.branch)},
+      month: {star: monthStar(ky, mi),   kanshi: mk, ha: ha(mk.branch)},
+      day:   {star: ds ? ds.star : null, kanshi: dk, ha: ha(dk.branch), ton: ds ? ds.ton : ""},
+    };
+  }
+
+  return {STARS, STEMS, BRANCHES, BRANCH_DIR, computeAll, board, yearStar, monthStar, dayStar, kigakuYear, monthIndex, sunLon, jdn};
+})();
+
+
+// ============================================================
+// UI 層（命式シンプル版）
+// ============================================================
+(function(){
+  "use strict";
+  const E = KigakuEngine;
+  const $ = id => document.getElementById(id);
+
+  // --- 読み仮名 ---
+  const kanshiFull = k => k.text;
+
+  // --- 傾斜: 月命星を中央にした盤で、本命星の入る宮（九星名で表す） ---
+  const PALACE = {N:"坎宮",NE:"艮宮",E:"震宮",SE:"巽宮",S:"離宮",SW:"坤宮",W:"兌宮",NW:"乾宮"};
+  const PALACE_STAR = {N:1,NE:8,E:3,SE:4,S:9,SW:2,W:7,NW:6}; // 各宮の定位星
+  function keisha(honmei, getsumei){
+    if(honmei === getsumei) return {star:"中宮", palace:"", note:"（本命星と月命星が同じ・扱いは流派により異なります）"};
+    const b = E.board(getsumei); // 月命星を中央に
+    for(const pos in PALACE){
+      if(b[pos] === honmei){
+        return {star:E.STARS[PALACE_STAR[pos]].slice(0,2), palace:PALACE[pos], note:""};
+      }
+    }
+    return {star:"—", palace:"", note:""};
+  }
+
+  // --- 性質フレーズ（役割別・9星分） ---
+  const KANBAN = ["",
+    "穏やかで話しやすく、人の相談に乗る聞き上手",
+    "面倒見がよく誠実で、周りから頼りにされる縁の下の力持ち",
+    "明るく行動的で、場を引っ張っていく元気な人",
+    "物腰がやわらかく、人と人をつなぐ調整役",
+    "存在感があり、自然と人が集まってくるリーダー気質",
+    "しっかり者で上品、頼れる兄貴・姉御肌",
+    "社交的で華やかな、みんなを楽しませるムードメーカー",
+    "落ち着いていて粘り強い、コツコツ型の実力者",
+    "華があって知的、目立つ存在感を持つ人"];
+  const HONNE = ["",
+    "じっくり考えたい慎重派。人に流されたくない気持ちがある",
+    "人に尽くしたい世話好き。安心・安定を何より大事にする",
+    "ワクワクしたい冒険心。新しいことにすぐ飛びつきたくなる",
+    "人に好かれたい気配り屋。周りとの調和を大切にする",
+    "自分の思い通りに進めたい、芯の強さを秘めている",
+    "プライドが高く、上質なもの・正しいことにこだわる",
+    "楽しく過ごしたい快楽派。おしゃべりや美味しいものが大好き",
+    "マイペースを守りたい人。じっくり自分の時間を持ちたい",
+    "感情豊かで情熱的。美しいものや刺激にときめきたい"];
+  const KUSE = ["",
+    "こまめに気を配り、静かに相手に合わせて動く",
+    "地道にコツコツ、面倒なこともいとわず引き受ける",
+    "思い立ったらすぐ動く、フットワークの軽さが出る",
+    "その場の空気を読んで、やわらかく立ち回る",
+    "自分のペースを崩さず、どっしり構えて動く",
+    "きっちり・完璧を目指し、妥協せずに取り組む",
+    "人当たりよく、会話や社交でその場を和ませる",
+    "慎重に様子を見て、じっくり構えてから動く",
+    "感覚で素早く判断し、パッと行動に移す"];
+  const SAINOU = ["",
+    "深く考え抜く思考力と、人の心を汲む繊細さ",
+    "地道に積み上げる粘りと、周りを包み込む優しさ",
+    "ゼロから何かを生み出す発想力と、行動する勇気",
+    "人と人をつなぐ調整力と、信頼を集める人徳",
+    "物事の中心に立つ統率力と、ブレない強い意志",
+    "高い理想を実現する責任感と、リーダーとしての器",
+    "人を楽しませる表現力と、豊かさを引き寄せる金運",
+    "コツコツ蓄える継続力と、大きく飛躍する底力",
+    "本質を見抜く直感力と、人を惹きつける華やかさ"];
+  // 傾斜を九星番号で返す（中宮は本命星と同じ扱い）
+  function keishaStar(honmei, getsumei){
+    if(honmei === getsumei) return honmei;
+    const b = E.board(getsumei);
+    for(const pos in PALACE_STAR){ if(b[pos] === honmei) return PALACE_STAR[pos]; }
+    return honmei;
+  }
+  const KUBO_PAIR = [[10,11],[8,9],[6,7],[4,5],[2,3],[0,1]]; // 旬0=戌亥 … 旬5=子丑（支インデックス）
+  const BR_TO_MONTH = {2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,0:12,1:1}; // 支→節月のおおよその暦月
+  function kubo(dayKanshiIndex){
+    const pair = KUBO_PAIR[Math.floor(dayKanshiIndex / 10)];
+    return {b1: pair[0], b2: pair[1]};
+  }
+  function nextKuboYears(b1){
+    const now = new Date().getFullYear();
+    for(let y = now - 1; y < now + 13; y++){
+      if(((y - 4) % 12 + 12) % 12 === b1 && y + 1 >= now) return [y, y + 1];
+    }
+    return null;
+  }
+
+  // --- 入力 ---
+  for(let m=1;m<=12;m++){ const o=document.createElement("option"); o.value=m; o.textContent=m; $("inMonth").appendChild(o); }
+  for(let d=1;d<=31;d++){ const o=document.createElement("option"); o.value=d; o.textContent=d; $("inDay").appendChild(o); }
+
+  const PKEY = "kigakuApp.people.v1";
+  const loadPeople = () => { try{ return JSON.parse(localStorage.getItem(PKEY)||"[]"); }catch(e){ return []; } };
+  const savePeople = list => { try{ localStorage.setItem(PKEY, JSON.stringify(list)); }catch(e){} };
+  function renderPeople(){
+    const box=$("people"); box.innerHTML="";
+    loadPeople().forEach((p,i)=>{
+      const c=document.createElement("span"); c.className="chip";
+      const t=document.createElement("span"); t.textContent=p.name;
+      const x=document.createElement("span"); x.className="del"; x.textContent="×";
+      c.appendChild(t); c.appendChild(x);
+      t.addEventListener("click",()=>{ $("inYear").value=p.y; $("inMonth").value=p.m; $("inDay").value=p.d; $("inName").value=p.name; calc(); });
+      x.addEventListener("click",e=>{ e.stopPropagation(); if(confirm(p.name+" を削除しますか？")){ const l=loadPeople(); l.splice(i,1); savePeople(l); renderPeople(); }});
+      box.appendChild(c);
+    });
+  }
+
+  // --- 計算・表示 ---
+  function calc(){
+    const y=+$("inYear").value, m=+$("inMonth").value, d=+$("inDay").value;
+    if(!$("inYear").value){ alert("生まれ年を入力してください"); return; }
+    const dt=new Date(y, m-1, d);
+    if(dt.getFullYear()!==y || dt.getMonth()!==m-1 || dt.getDate()!==d){ alert("存在しない日付です"); return; }
+    const r = E.computeAll(y,m,d);
+    $("result").style.display="block";
+    const nm = $("inName").value.trim();
+    $("rBorn").textContent = (nm? nm+"さん　" : "") + y+"年"+m+"月"+d+"日生まれ"
+      + (r.kigakuYear!==y ? "（気学上は"+r.kigakuYear+"年扱い・立春前）" : "");
+
+    $("rHon").textContent   = E.STARS[r.year.star];
+    $("rHonK").innerHTML    = kanshiFull(r.year.kanshi);
+    $("rGetsu").textContent = E.STARS[r.month.star];
+    $("rGetsuK").innerHTML  = kanshiFull(r.month.kanshi);
+    $("rNichi").textContent = E.STARS[r.day.star];
+    $("rNichiK").innerHTML  = kanshiFull(r.day.kanshi);
+
+    const k = keisha(r.year.star, r.month.star);
+    $("rKeisha").textContent = k.star + (k.palace ? "（" + k.palace + "傾斜）" : "") + k.note;
+
+    const ku = kubo(r.day.kanshi.index);
+    const B = E.BRANCHES;
+    $("rKubo").textContent = B[ku.b1] + B[ku.b2];
+    const yrs = nextKuboYears(ku.b1);
+    $("rKuboYear").textContent = yrs ? "　直近の空亡年: "+yrs[0]+"年・"+yrs[1]+"年" : "";
+    $("rKuboMonth").textContent = BR_TO_MONTH[ku.b1] + "月・" + BR_TO_MONTH[ku.b2] + "月";
+
+    // --- あなたはこういう性質の方 ---
+    const ks = keishaStar(r.year.star, r.month.star);
+    const who = nm ? nm + "さん" : "あなた";
+    $("persona").innerHTML =
+      "<h2>あなたはこういう性質の方</h2>" +
+      "<div class='body'>" +
+      who + "は、周りからは<b>「" + KANBAN[r.year.star] + "」</b>と見られる人。<br>" +
+      "<span class='tag'>本音</span>は<b>「" + HONNE[r.month.star] + "」</b>タイプで、<br>" +
+      "<span class='tag'>普段のクセ</span>は<b>「" + KUSE[r.day.star] + "」</b>。<br>" +
+      "そして自分でも気づいていない奥に、<b>「" + SAINOU[ks] + "」</b>を秘めています。" +
+      "</div>";
+  }
+
+  $("calcBtn").addEventListener("click", calc);
+  $("saveBtn").addEventListener("click", ()=>{
+    const nm=$("inName").value.trim();
+    if(!nm){ alert("保存するには名前を入れてください"); return; }
+    const l=loadPeople();
+    l.push({name:nm, y:+$("inYear").value, m:+$("inMonth").value, d:+$("inDay").value});
+    savePeople(l); renderPeople();
+  });
+
+  renderPeople();
+})();
+</script>
+</body>
+</html>
